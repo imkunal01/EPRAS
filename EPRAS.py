@@ -1,120 +1,77 @@
+import tkinter as tk
+from tkinter import ttk
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import random
 
-# Function to simulate FIFO Page Replacement Algorithm
-def fifo_page_replacement(pages, capacity):
-    frame = []
-    page_faults = 0
-    history = []
+# Page Replacement Simulation
+class PageReplacementSimulator:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Page Replacement Algorithm Simulator")
+        self.root.geometry("700x500")
 
-    for page in pages:
-        if page not in frame:
-            if len(frame) < capacity:
-                frame.append(page)
-            else:
-                frame.pop(0)
-                frame.append(page)
-            page_faults += 1
-        history.append(list(frame))
+        # Dropdown for Algorithm Selection
+        self.algo_label = ttk.Label(root, text="Select Algorithm:")
+        self.algo_label.pack()
+        self.algo_choice = ttk.Combobox(root, values=["FIFO", "LRU", "Optimal"])
+        self.algo_choice.pack()
+        self.algo_choice.set("FIFO")
 
-    return page_faults, history
+        # Start Button
+        self.start_button = ttk.Button(root, text="Run Simulation", command=self.run_simulation)
+        self.start_button.pack()
 
-# Function to simulate LRU Page Replacement Algorithm
-def lru_page_replacement(pages, capacity):
-    frame = []
-    page_faults = 0
-    history = []
+        # Frame for Graph
+        self.frame = ttk.Frame(root)
+        self.frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Matplotlib Figure
+        self.fig, self.ax = plt.subplots()
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-    for page in pages:
-        if page in frame:
-            frame.remove(page)
-        else:
-            page_faults += 1
-            if len(frame) == capacity:
-                frame.pop(0)
-        frame.append(page)
-        history.append(list(frame))
+        self.frames = 3  # Number of frames
+        self.pages = [random.randint(1, 5) for _ in range(10)]  # Random page references
 
-    return page_faults, history
+    def fifo_algorithm(self):
+        queue = []
+        page_faults = 0
+        history = []
 
-# Function to simulate Optimal Page Replacement Algorithm
-def optimal_page_replacement(pages, capacity):
-    frame = []
-    page_faults = 0
-    history = []
+        for page in self.pages:
+            if page not in queue:
+                if len(queue) < self.frames:
+                    queue.append(page)
+                else:
+                    queue.pop(0)
+                    queue.append(page)
+                page_faults += 1
+            history.append(queue.copy())
 
-    for i in range(len(pages)):
-        if pages[i] not in frame:
-            if len(frame) < capacity:
-                frame.append(pages[i])
-            else:
-                future = pages[i+1:]
-                replace_idx = -1
-                farthest_use = -1
+        return history, page_faults
 
-                for page in frame:
-                    if page in future:
-                        next_use = future.index(page)
-                        if next_use > farthest_use:
-                            farthest_use = next_use
-                            replace_idx = frame.index(page)
-                    else:
-                        replace_idx = frame.index(page)
-                        break
+    def animate(self, i):
+        self.ax.clear()
+        self.ax.set_title(f"Page Replacement: {self.algo_choice.get()}")
+        self.ax.set_xlabel("Time Step")
+        self.ax.set_ylabel("Page Frames")
+        
+        # Get frame-by-frame data
+        if i < len(self.history):
+            y_data = self.history[i]
+            self.ax.bar(range(len(y_data)), y_data, color="blue")
 
-                frame[replace_idx] = pages[i]
-            page_faults += 1
-        history.append(list(frame))
+    def run_simulation(self):
+        algo = self.algo_choice.get()
+        if algo == "FIFO":
+            self.history, self.page_faults = self.fifo_algorithm()
+        
+        self.ani = animation.FuncAnimation(self.fig, self.animate, frames=len(self.history), repeat=False, interval=700)
+        self.canvas.draw()
 
-    return page_faults, history
-
-# Function to animate page replacement step by step
-def animate_page_replacement(pages, capacity, algorithm, algo_name):
-    page_faults, history = algorithm(pages, capacity)
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.set_title(f"{algo_name} Page Replacement (Faults: {page_faults})")
-    ax.set_xlabel("Frame Slots")
-    ax.set_ylabel("Time Step")
-    ax.set_xticks(range(capacity))
-    ax.set_yticks(range(len(pages)))
-    
-    table = ax.table(cellText=[[""] * capacity for _ in range(len(pages))],
-                     cellLoc='center', loc='center')
-    
-    def update(frame_num):
-        frame_state = history[frame_num]
-        for i, val in enumerate(frame_state):
-            table[(frame_num, i)]._text.set_text(str(val))
-        return table,
-
-    ani = animation.FuncAnimation(fig, update, frames=len(history), repeat=False, interval=700)
-    plt.show()
-
-# Driver Code
-if __name__ == "__main__":
-    pages = list(map(int, input("Enter reference string (space-separated): ").split()))
-    capacity = int(input("Enter the number of frames: "))
-
-    print("\nRunning Page Replacement Algorithms...\n")
-
-    fifo_faults, _ = fifo_page_replacement(pages, capacity)
-    lru_faults, _ = lru_page_replacement(pages, capacity)
-    optimal_faults, _ = optimal_page_replacement(pages, capacity)
-
-    print(f"FIFO Page Faults: {fifo_faults}")
-    print(f"LRU Page Faults: {lru_faults}")
-    print(f"Optimal Page Faults: {optimal_faults}")
-
-    # Choose algorithm for animation (FIFO, LRU, or Optimal)
-    algo_map = {
-        "FIFO": fifo_page_replacement,
-        "LRU": lru_page_replacement,
-        "Optimal": optimal_page_replacement
-    }
-
-    choice = input("\nChoose an algorithm to animate (FIFO/LRU/Optimal): ").strip().capitalize()
-    if choice in algo_map:
-        animate_page_replacement(pages, capacity, algo_map[choice], choice)
-    else:
-        print("Invalid choice! Please enter FIFO, LRU, or Optimal.")
+# Run GUI
+root = tk.Tk()
+app = PageReplacementSimulator(root)
+root.mainloop()
