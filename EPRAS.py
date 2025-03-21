@@ -1,38 +1,39 @@
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
-# Function to simulate FIFO (First-In-First-Out) Page Replacement Algorithm
+# Function to simulate FIFO Page Replacement Algorithm
 def fifo_page_replacement(pages, capacity):
     frame = []
     page_faults = 0
-    history = []  # Stores the state of frames at each step
+    history = []
 
     for page in pages:
         if page not in frame:
             if len(frame) < capacity:
-                frame.append(page)  # Add page if there's space
+                frame.append(page)
             else:
-                frame.pop(0)  # Remove the oldest page
-                frame.append(page)  # Insert new page
-            page_faults += 1  # Increase page fault count
-        history.append(list(frame))  # Store the current frame state
-    
+                frame.pop(0)
+                frame.append(page)
+            page_faults += 1
+        history.append(list(frame))
+
     return page_faults, history
 
-# Function to simulate LRU (Least Recently Used) Page Replacement Algorithm
+# Function to simulate LRU Page Replacement Algorithm
 def lru_page_replacement(pages, capacity):
     frame = []
     page_faults = 0
-    history = []  # Stores the state of frames at each step
+    history = []
 
     for page in pages:
         if page in frame:
-            frame.remove(page)  # Move used page to the end
+            frame.remove(page)
         else:
-            page_faults += 1  # Page fault occurs
+            page_faults += 1
             if len(frame) == capacity:
-                frame.pop(0)  # Remove least recently used page
-        frame.append(page)  # Insert new page at the end
-        history.append(list(frame))  # Store the current frame state
+                frame.pop(0)
+        frame.append(page)
+        history.append(list(frame))
 
     return page_faults, history
 
@@ -40,15 +41,14 @@ def lru_page_replacement(pages, capacity):
 def optimal_page_replacement(pages, capacity):
     frame = []
     page_faults = 0
-    history = []  # Stores the state of frames at each step
+    history = []
 
     for i in range(len(pages)):
         if pages[i] not in frame:
             if len(frame) < capacity:
-                frame.append(pages[i])  # Add page if there's space
+                frame.append(pages[i])
             else:
-                # Find the page to be replaced
-                future = pages[i+1:]  # Remaining pages
+                future = pages[i+1:]
                 replace_idx = -1
                 farthest_use = -1
 
@@ -62,37 +62,36 @@ def optimal_page_replacement(pages, capacity):
                         replace_idx = frame.index(page)
                         break
 
-                frame[replace_idx] = pages[i]  # Replace the selected page
-            page_faults += 1  # Increase page fault count
-        history.append(list(frame))  # Store the current frame state
+                frame[replace_idx] = pages[i]
+            page_faults += 1
+        history.append(list(frame))
 
     return page_faults, history
 
-# Function to visualize page replacement simulation
-def visualize_simulation(pages, capacity):
-    algorithms = {
-        "FIFO": fifo_page_replacement,
-        "LRU": lru_page_replacement,
-        "Optimal": optimal_page_replacement
-    }
+# Function to animate page replacement step by step
+def animate_page_replacement(pages, capacity, algorithm, algo_name):
+    page_faults, history = algorithm(pages, capacity)
 
-    plt.figure(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.set_title(f"{algo_name} Page Replacement (Faults: {page_faults})")
+    ax.set_xlabel("Frame Slots")
+    ax.set_ylabel("Time Step")
+    ax.set_xticks(range(capacity))
+    ax.set_yticks(range(len(pages)))
+    
+    table = ax.table(cellText=[[""] * capacity for _ in range(len(pages))],
+                     cellLoc='center', loc='center')
+    
+    def update(frame_num):
+        frame_state = history[frame_num]
+        for i, val in enumerate(frame_state):
+            table[(frame_num, i)]._text.set_text(str(val))
+        return table,
 
-    for idx, (name, algo) in enumerate(algorithms.items(), 1):
-        page_faults, history = algo(pages, capacity)
-
-        plt.subplot(1, 3, idx)
-        plt.imshow(history, cmap="coolwarm", aspect="auto")
-        plt.xticks(range(capacity))
-        plt.yticks(range(len(pages)), pages)
-        plt.title(f"{name} (Faults: {page_faults})")
-        plt.xlabel("Frame Slot")
-        plt.ylabel("Page Sequence")
-
-    plt.tight_layout()
+    ani = animation.FuncAnimation(fig, update, frames=len(history), repeat=False, interval=700)
     plt.show()
 
-# Driver Code: Takes input from the user and runs simulations
+# Driver Code
 if __name__ == "__main__":
     pages = list(map(int, input("Enter reference string (space-separated): ").split()))
     capacity = int(input("Enter the number of frames: "))
@@ -107,5 +106,15 @@ if __name__ == "__main__":
     print(f"LRU Page Faults: {lru_faults}")
     print(f"Optimal Page Faults: {optimal_faults}")
 
-    # Visualize the results
-    visualize_simulation(pages, capacity)
+    # Choose algorithm for animation (FIFO, LRU, or Optimal)
+    algo_map = {
+        "FIFO": fifo_page_replacement,
+        "LRU": lru_page_replacement,
+        "Optimal": optimal_page_replacement
+    }
+
+    choice = input("\nChoose an algorithm to animate (FIFO/LRU/Optimal): ").strip().capitalize()
+    if choice in algo_map:
+        animate_page_replacement(pages, capacity, algo_map[choice], choice)
+    else:
+        print("Invalid choice! Please enter FIFO, LRU, or Optimal.")
