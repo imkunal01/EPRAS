@@ -27,7 +27,7 @@ This Python program simulates various page replacement algorithms, including Fir
 
 ## Usage
 
-1. Clone the repository: `git clone https://github.com/your-username/page-replacement-simulation.git`
+1. Clone the repository: `git clone https://github.com/imkunal01/page-replacement-simulation.git`
 2. Install the required dependencies: `pip install -r requirements.txt`
 3. Run the simulation: `python main.py`
 

@@ -29,7 +29,6 @@ class PageReplacementSimulator:
         style.map("TCombobox", fieldbackground=[("readonly", "#27293d")], foreground=[("readonly", "white")])
 
     def build_ui(self):
-        # Controls Frame
         control_frame = ttk.Frame(self.root, padding=20)
         control_frame.pack(fill=tk.X)
 
@@ -43,7 +42,6 @@ class PageReplacementSimulator:
         self.page_input.insert(0, ",".join(map(str, self.pages)))
         self.page_input.grid(row=1, column=1, padx=10, pady=5)
 
-        # Buttons Row
         btn_frame = ttk.Frame(control_frame)
         btn_frame.grid(row=2, column=0, columnspan=2, pady=10)
 
@@ -53,11 +51,9 @@ class PageReplacementSimulator:
         self.reset_button = ttk.Button(btn_frame, text="Reset", command=self.reset_simulation)
         self.reset_button.pack(side=tk.LEFT, padx=5)
 
-        # Page Faults Label
         self.page_fault_label = ttk.Label(control_frame, text="Page Faults: 0")
         self.page_fault_label.grid(row=3, column=0, columnspan=2)
 
-        # Graph Frame
         graph_frame = ttk.Frame(self.root)
         graph_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
@@ -89,14 +85,16 @@ class PageReplacementSimulator:
         history = []
 
         for i, page in enumerate(self.pages):
-            if page not in queue:
+            if page in queue:
+                recent[page] = i
+            else:
                 if len(queue) < self.frames:
                     queue.append(page)
                 else:
-                    lru_page = min(recent, key=recent.get)
+                    lru_page = min(queue, key=lambda x: recent.get(x, -1))
                     queue[queue.index(lru_page)] = page
+                recent[page] = i
                 page_faults += 1
-            recent[page] = i
             history.append(queue.copy())
 
         return history, page_faults
@@ -142,10 +140,8 @@ class PageReplacementSimulator:
             messagebox.showerror("Invalid Input", "Please enter valid comma-separated numbers.")
             return
 
-        # Disable run button during animation
         self.run_button.state(["disabled"])
 
-        # Stop previous animation if running
         if hasattr(self, 'ani') and self.ani:
             try:
                 self.ani.event_source.stop()
@@ -186,8 +182,6 @@ class PageReplacementSimulator:
         self.canvas.draw()
         self.page_fault_label.config(text="Page Faults: 0")
         self.run_button.state(["!disabled"])
-
-# Launch GUI
 root = tk.Tk()
 app = PageReplacementSimulator(root)
 root.mainloop()
